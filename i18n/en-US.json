@@ -1147,6 +1147,9 @@
 		}
 	},
 	"notifications": {
+		"actions": {
+			"markAsRead": "Mark as read"
+		},
 		"title": "Notifications",
 		"newCount_one": "{{count}} new",
 		"newCount_other": "{{count}} new",

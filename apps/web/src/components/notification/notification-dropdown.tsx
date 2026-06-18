@@ -27,6 +27,7 @@ import {
 import { shortcuts } from "@/constants/shortcuts";
 import useClearNotifications from "@/hooks/mutations/notification/use-clear-notifications";
 import useMarkAllNotificationsAsRead from "@/hooks/mutations/notification/use-mark-all-notifications-as-read";
+import useMarkNotificationAsRead from "@/hooks/mutations/notification/use-mark-notification-as-read";
 import useGetNotifications from "@/hooks/queries/notification/use-get-notifications";
 import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { cn } from "@/lib/cn";
@@ -153,6 +154,7 @@ const NotificationDropdown = forwardRef<NotificationDropdownRef>(
     const [showClearDialog, setShowClearDialog] = useState(false);
 
     const { mutate: markAllAsRead } = useMarkAllNotificationsAsRead();
+    const { mutate: markAsRead } = useMarkNotificationAsRead();
     const { mutate: clearAll } = useClearNotifications();
 
     const unreadNotifications = notifications?.filter((n) => !n.isRead) || [];
@@ -165,6 +167,10 @@ const NotificationDropdown = forwardRef<NotificationDropdownRef>(
     const handleClearAll = () => {
       clearAll();
       setShowClearDialog(false);
+    };
+
+    const handleMarkAsRead = (notificationId: string) => {
+      markAsRead(notificationId);
     };
 
     useRegisterShortcuts({
@@ -248,20 +254,41 @@ const NotificationDropdown = forwardRef<NotificationDropdownRef>(
                 notifications.map((notification) => (
                   <div
                     key={notification.id}
+                    {...(!notification.isRead
+                      ? {
+                          role: "button" as const,
+                          tabIndex: 0,
+                          "aria-label": t("notifications:actions.markAsRead"),
+                          onClick: () => handleMarkAsRead(notification.id),
+                          onKeyDown: (
+                            event: React.KeyboardEvent<HTMLDivElement>,
+                          ) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleMarkAsRead(notification.id);
+                            }
+                          },
+                        }
+                      : {})}
                     className={cn(
                       "px-3 py-3 border-b border-border/50 hover:bg-accent/50 transition-colors",
-                      !notification.isRead && "bg-accent/20",
+                      !notification.isRead && "cursor-pointer bg-accent/20",
                     )}
                   >
                     <div className="flex items-start gap-3">
+                      <div className="mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center">
+                        {!notification.isRead && (
+                          <span
+                            className="h-2 w-2 rounded-full bg-destructive"
+                            aria-hidden
+                          />
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="mb-1">
                           <h4 className="text-sm font-medium text-foreground">
                             {getNotificationTitle(notification, t)}
                           </h4>
-                          {!notification.isRead && (
-                            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                          )}
                         </div>
                         {getNotificationContent(notification, t) && (
                           <p className="text-xs text-muted-foreground line-clamp-2">

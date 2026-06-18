@@ -4613,6 +4613,16 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"actions": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"markAsRead": {
+							"type": "string"
+						}
+					},
+					"required": ["markAsRead"]
+				},
 				"title": {
 					"type": "string"
 				},
