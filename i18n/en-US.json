@@ -1148,7 +1148,9 @@
 	},
 	"notifications": {
 		"actions": {
-			"markAsRead": "Mark as read"
+			"markAsRead": "Mark as read",
+			"open": "Open",
+			"openFailed": "Unable to open this notification"
 		},
 		"title": "Notifications",
 		"newCount_one": "{{count}} new",

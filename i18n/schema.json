@@ -4619,9 +4619,15 @@
 					"properties": {
 						"markAsRead": {
 							"type": "string"
+						},
+						"open": {
+							"type": "string"
+						},
+						"openFailed": {
+							"type": "string"
 						}
 					},
-					"required": ["markAsRead"]
+					"required": ["markAsRead", "open", "openFailed"]
 				},
 				"title": {
 					"type": "string"
