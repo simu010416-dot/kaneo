@@ -4613,6 +4613,22 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"actions": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"markAsRead": {
+							"type": "string"
+						},
+						"open": {
+							"type": "string"
+						},
+						"openFailed": {
+							"type": "string"
+						}
+					},
+					"required": ["markAsRead", "open", "openFailed"]
+				},
 				"title": {
 					"type": "string"
 				},

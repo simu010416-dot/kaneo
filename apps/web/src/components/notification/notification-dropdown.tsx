@@ -1,6 +1,8 @@
-import { Bell } from "lucide-react";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { Bell, ExternalLink } from "lucide-react";
+import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -27,11 +29,15 @@ import {
 import { shortcuts } from "@/constants/shortcuts";
 import useClearNotifications from "@/hooks/mutations/notification/use-clear-notifications";
 import useMarkAllNotificationsAsRead from "@/hooks/mutations/notification/use-mark-all-notifications-as-read";
+import useMarkNotificationAsRead from "@/hooks/mutations/notification/use-mark-notification-as-read";
 import useGetNotifications from "@/hooks/queries/notification/use-get-notifications";
+import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
+import useGetWorkspaces from "@/hooks/queries/workspace/use-get-workspaces";
 import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime } from "@/lib/format";
 import { getStatusLabel } from "@/lib/i18n/domain";
+import resolveNotificationTarget from "@/lib/resolve-notification-target";
 import type { Notification } from "@/types/notification";
 
 export type NotificationDropdownRef = {
@@ -145,14 +151,41 @@ function getNotificationContent(
   return notification.content ?? "";
 }
 
+function canOpenNotification(notification: Notification) {
+  return Boolean(notification.resourceId && notification.resourceType);
+}
+
 const NotificationDropdown = forwardRef<NotificationDropdownRef>(
   (_props, ref) => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const { data: notifications } = useGetNotifications();
+    const { data: activeWorkspace } = useActiveWorkspace();
+    const { data: workspaces } = useGetWorkspaces();
     const [isOpen, setIsOpen] = useState(false);
     const [showClearDialog, setShowClearDialog] = useState(false);
+    const [openingNotificationId, setOpeningNotificationId] = useState<
+      string | null
+    >(null);
+
+    const workspaceIds = useMemo(() => {
+      const ids: string[] = [];
+
+      if (activeWorkspace?.id) {
+        ids.push(activeWorkspace.id);
+      }
+
+      for (const workspace of workspaces ?? []) {
+        if (!ids.includes(workspace.id)) {
+          ids.push(workspace.id);
+        }
+      }
+
+      return ids;
+    }, [activeWorkspace?.id, workspaces]);
 
     const { mutate: markAllAsRead } = useMarkAllNotificationsAsRead();
+    const { mutate: markAsRead } = useMarkNotificationAsRead();
     const { mutate: clearAll } = useClearNotifications();
 
     const unreadNotifications = notifications?.filter((n) => !n.isRead) || [];
@@ -165,6 +198,58 @@ const NotificationDropdown = forwardRef<NotificationDropdownRef>(
     const handleClearAll = () => {
       clearAll();
       setShowClearDialog(false);
+    };
+
+    const handleMarkAsRead = (notificationId: string) => {
+      markAsRead(notificationId);
+    };
+
+    const handleOpenNotification = async (notification: Notification) => {
+      if (!canOpenNotification(notification)) {
+        return;
+      }
+
+      setOpeningNotificationId(notification.id);
+
+      try {
+        const target = await resolveNotificationTarget({
+          resourceType: notification.resourceType,
+          resourceId: notification.resourceId,
+          workspaceIds,
+        });
+
+        if (!target) {
+          toast.error(t("notifications:actions.openFailed"));
+          return;
+        }
+
+        if (!notification.isRead) {
+          handleMarkAsRead(notification.id);
+        }
+
+        setIsOpen(false);
+
+        if (target.type === "workspace") {
+          navigate({
+            to: "/dashboard/workspace/$workspaceId",
+            params: { workspaceId: target.workspaceId },
+          });
+          return;
+        }
+
+        navigate({
+          to: "/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId",
+          params: {
+            workspaceId: target.workspaceId,
+            projectId: target.projectId,
+            taskId: target.taskId,
+          },
+        });
+      } catch {
+        toast.error(t("notifications:actions.openFailed"));
+      } finally {
+        setOpeningNotificationId(null);
+      }
     };
 
     useRegisterShortcuts({
@@ -248,20 +333,41 @@ const NotificationDropdown = forwardRef<NotificationDropdownRef>(
                 notifications.map((notification) => (
                   <div
                     key={notification.id}
+                    {...(!notification.isRead
+                      ? {
+                          role: "button" as const,
+                          tabIndex: 0,
+                          "aria-label": t("notifications:actions.markAsRead"),
+                          onClick: () => handleMarkAsRead(notification.id),
+                          onKeyDown: (
+                            event: React.KeyboardEvent<HTMLDivElement>,
+                          ) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleMarkAsRead(notification.id);
+                            }
+                          },
+                        }
+                      : {})}
                     className={cn(
                       "px-3 py-3 border-b border-border/50 hover:bg-accent/50 transition-colors",
-                      !notification.isRead && "bg-accent/20",
+                      !notification.isRead && "cursor-pointer bg-accent/20",
                     )}
                   >
                     <div className="flex items-start gap-3">
+                      <div className="mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center">
+                        {!notification.isRead && (
+                          <span
+                            className="h-2 w-2 rounded-full bg-destructive"
+                            aria-hidden
+                          />
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="mb-1">
                           <h4 className="text-sm font-medium text-foreground">
                             {getNotificationTitle(notification, t)}
                           </h4>
-                          {!notification.isRead && (
-                            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                          )}
                         </div>
                         {getNotificationContent(notification, t) && (
                           <p className="text-xs text-muted-foreground line-clamp-2">
@@ -272,6 +378,26 @@ const NotificationDropdown = forwardRef<NotificationDropdownRef>(
                           {formatRelativeTime(notification.createdAt)}
                         </p>
                       </div>
+                      {canOpenNotification(notification) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 shrink-0 p-0"
+                          aria-label={t("notifications:actions.open")}
+                          loading={openingNotificationId === notification.id}
+                          disabled={
+                            openingNotificationId !== null &&
+                            openingNotificationId !== notification.id
+                          }
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleOpenNotification(notification);
+                          }}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))
