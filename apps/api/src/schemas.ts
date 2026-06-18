@@ -39,6 +39,8 @@ export const taskSchema = v.object({
   ] as const),
   startDate: v.optional(v.date()),
   dueDate: v.optional(v.date()),
+  autoMigrateEnabled: v.optional(v.boolean()),
+  autoMigrateStatus: v.optional(v.nullable(v.string())),
   createdAt: v.date(),
 });
 
@@ -92,6 +94,7 @@ export const notificationSchema = v.object({
     "time_entry_created",
     "due_date_reminder",
     "task_overdue",
+    "task_auto_migrate_failed",
   ] as const),
   eventData: v.nullable(v.record(v.string(), v.unknown())),
   isRead: v.optional(v.boolean()),

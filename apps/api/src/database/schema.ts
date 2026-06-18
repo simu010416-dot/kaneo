@@ -309,6 +309,10 @@ export const taskTable = pgTable(
     priority: text("priority").default("low"),
     startDate: timestamp("start_date", { mode: "date" }),
     dueDate: timestamp("due_date", { mode: "date" }),
+    autoMigrateEnabled: boolean("auto_migrate_enabled")
+      .default(false)
+      .notNull(),
+    autoMigrateStatus: text("auto_migrate_status"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "date" })
       .defaultNow()
@@ -318,6 +322,7 @@ export const taskTable = pgTable(
   (table) => [
     index("task_projectId_idx").on(table.projectId),
     index("task_dueDate_idx").on(table.dueDate),
+    index("task_autoMigrate_idx").on(table.status, table.autoMigrateEnabled),
     unique("task_project_number_unique").on(table.projectId, table.number),
   ],
 );

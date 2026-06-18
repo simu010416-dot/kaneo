@@ -28,6 +28,7 @@ import importTasks from "./controllers/import-tasks";
 import moveTask from "./controllers/move-task";
 import updateTask from "./controllers/update-task";
 import updateTaskAssignee from "./controllers/update-task-assignee";
+import updateTaskAutoMigrate from "./controllers/update-task-auto-migrate";
 import updateTaskDescription from "./controllers/update-task-description";
 import updateTaskDueDate from "./controllers/update-task-due-date";
 import updateTaskPriority from "./controllers/update-task-priority";
@@ -823,6 +824,40 @@ const task = new Hono<{
         description,
         currentUserId,
       });
+
+      return c.json(task);
+    },
+  )
+  .patch(
+    "/auto-migrate/:id",
+    describeRoute({
+      operationId: "updateTaskAutoMigrate",
+      tags: ["Tasks"],
+      description:
+        "Enable or disable automatic migration of a planned task to a target column",
+      responses: {
+        200: {
+          description: "Task auto migration settings updated successfully",
+          content: {
+            "application/json": { schema: resolver(taskSchema) },
+          },
+        },
+      },
+    }),
+    validator("param", v.object({ id: v.string() })),
+    validator(
+      "json",
+      v.object({
+        enabled: v.boolean(),
+        targetStatus: v.optional(v.nullable(v.string())),
+      }),
+    ),
+    workspaceAccess.fromTask(),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const { enabled, targetStatus } = c.req.valid("json");
+
+      const task = await updateTaskAutoMigrate({ id, enabled, targetStatus });
 
       return c.json(task);
     },

@@ -1179,6 +1179,10 @@
 				"title": "Time tracking started",
 				"contentWithTask": "Time tracking started on task: {{taskTitle}}",
 				"contentWithoutTask": "Time tracking started on a task"
+			},
+			"task_auto_migrate_failed": {
+				"title": "Auto migration failed",
+				"content": "Task \"{{taskTitle}}\" could not be moved because the target column \"{{targetStatus}}\" no longer exists. Auto migration has been turned off."
 			}
 		}
 	},
@@ -1528,6 +1532,11 @@
 				"archived": "Archived"
 			},
 			"noTasksInSection": "No {{section}} tasks",
+			"autoMigrate": {
+				"toggle": "Auto move",
+				"targetColumn": "Select column",
+				"noColumns": "No board columns available to migrate to"
+			},
 			"filters": {
 				"priority": "Priority: {{name}}",
 				"assignee": "Assignee: {{name}}",
