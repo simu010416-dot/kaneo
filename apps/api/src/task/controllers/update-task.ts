@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import db from "../../database";
 import { columnTable, taskTable } from "../../database/schema";
 import { publishEvent } from "../../events";
+import { autoMigrateClearPatch } from "../auto-migrate-fields";
 import { assertValidTaskStatus } from "../validate-task-fields";
 
 async function updateTask(
@@ -37,19 +38,34 @@ async function updateTask(
     ),
   });
 
+  const resolvedStartDate = startDate || null;
+  const nextStartDateForPatch =
+    startDate !== undefined
+      ? resolvedStartDate
+      : existingTask.startDate
+        ? null
+        : undefined;
+  const clearPatch = autoMigrateClearPatch({
+    previousStatus: existingTask.status,
+    nextStatus: status,
+    nextStartDate: nextStartDateForPatch,
+    previousStartDate: existingTask.startDate,
+  });
+
   const [updatedTask] = await db
     .update(taskTable)
     .set({
       title,
       status,
       columnId: column?.id ?? null,
-      startDate: startDate || null,
+      startDate: resolvedStartDate,
       dueDate: dueDate || null,
       projectId,
       description,
       priority,
       position,
       userId: userId || null,
+      ...clearPatch,
     })
     .where(eq(taskTable.id, id))
     .returning();

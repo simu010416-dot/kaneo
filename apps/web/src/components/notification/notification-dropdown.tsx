@@ -80,6 +80,11 @@ function getNotificationTitle(
           ...eventData,
           defaultValue: notification.title ?? notification.type,
         });
+      case "task_auto_migrate_failed":
+        return t("notifications:events.task_auto_migrate_failed.title", {
+          ...eventData,
+          defaultValue: notification.title ?? notification.type,
+        });
       default:
         break;
     }
@@ -127,6 +132,11 @@ function getNotificationContent(
               ...eventData,
               defaultValue: notification.content ?? "",
             });
+      case "task_auto_migrate_failed":
+        return t("notifications:events.task_auto_migrate_failed.content", {
+          ...eventData,
+          defaultValue: notification.content ?? "",
+        });
       default:
         break;
     }

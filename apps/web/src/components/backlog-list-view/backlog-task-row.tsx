@@ -16,7 +16,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
+import { useUpdateTaskAutoMigrate } from "@/hooks/mutations/task/use-update-task-auto-migrate";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { cn } from "@/lib/cn";
@@ -59,6 +68,43 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
   } = useUserPreferencesStore();
   const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
   const { mutateAsync: deleteTask } = useDeleteTask();
+  const { mutate: updateAutoMigrate } = useUpdateTaskAutoMigrate();
+
+  const columns = project?.columns ?? [];
+  const showAutoMigrate = task.status === "planned" && Boolean(task.startDate);
+
+  const handleAutoMigrateToggle = (checked: boolean) => {
+    if (checked) {
+      const targetStatus = task.autoMigrateStatus ?? columns[0]?.slug;
+      if (!targetStatus) {
+        toast.error(t("tasks:backlog.autoMigrate.noColumns"));
+        return;
+      }
+      updateAutoMigrate({
+        taskId: task.id,
+        projectId: task.projectId,
+        enabled: true,
+        targetStatus,
+      });
+      return;
+    }
+
+    updateAutoMigrate({
+      taskId: task.id,
+      projectId: task.projectId,
+      enabled: false,
+      targetStatus: null,
+    });
+  };
+
+  const handleAutoMigrateTargetChange = (targetStatus: string) => {
+    updateAutoMigrate({
+      taskId: task.id,
+      projectId: task.projectId,
+      enabled: true,
+      targetStatus,
+    });
+  };
   const { toggleSelection, isSelected, isFocused } =
     useBacklogBulkSelectionStore();
   const isTaskSelected = isSelected(task.id);
@@ -192,6 +238,52 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
                   <Calendar className="w-3 h-3" />
                 )}
                 <span>{format(new Date(task.dueDate), "MMM d")}</span>
+              </div>
+            )}
+
+            {showAutoMigrate && (
+              // biome-ignore lint/a11y/noStaticElementInteractions: stops row click/drag from interfering with the controls
+              <div
+                className="flex items-center gap-2 flex-shrink-0"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {t("tasks:backlog.autoMigrate.toggle")}
+                </span>
+                <Switch
+                  aria-label={t("tasks:backlog.autoMigrate.toggle")}
+                  checked={Boolean(task.autoMigrateEnabled)}
+                  onCheckedChange={handleAutoMigrateToggle}
+                />
+                {task.autoMigrateEnabled && (
+                  <Select
+                    items={columns.map((column) => ({
+                      label: column.name,
+                      value: column.slug,
+                    }))}
+                    onValueChange={(value) =>
+                      handleAutoMigrateTargetChange(value as string)
+                    }
+                    value={task.autoMigrateStatus ?? null}
+                  >
+                    <SelectTrigger className="h-7 w-32" size="sm">
+                      <SelectValue
+                        placeholder={t(
+                          "tasks:backlog.autoMigrate.targetColumn",
+                        )}
+                      />
+                    </SelectTrigger>
+                    <SelectPopup>
+                      {columns.map((column) => (
+                        <SelectItem key={column.slug} value={column.slug}>
+                          {column.name}
+                        </SelectItem>
+                      ))}
+                    </SelectPopup>
+                  </Select>
+                )}
               </div>
             )}
 

@@ -1209,6 +1209,11 @@
 			"moveAllConfirm": "是否将所有 {{count}} 个已规划任务移至待办？",
 			"moveAllSuccess": "已将 {{count}} 个任务移至待办",
 			"moveAllTooltip": "将所有已规划任务移至待办",
+			"autoMigrate": {
+				"noColumns": "没有可迁移的看板列",
+				"targetColumn": "选择列",
+				"toggle": "到点自动迁移"
+			},
 			"noTasksInSection": "暂无{{section}}任务",
 			"noTasksToMove": "没有可移动的已规划任务",
 			"pageTitle": "{{name}} 的待办池",
@@ -1688,6 +1693,10 @@
 			"task_status_changed": {
 				"content": "任务「{{taskTitle}}」状态从「{{oldStatus}}」变为「{{newStatus}}」",
 				"title": "任务状态已变更"
+			},
+			"task_auto_migrate_failed": {
+				"content": "任务「{{taskTitle}}」无法迁移，因为目标列「{{targetStatus}}」已不存在。自动迁移开关已关闭。",
+				"title": "自动迁移失败"
 			},
 			"time_entry_created": {
 				"contentWithoutTask": "某任务已开始计时",

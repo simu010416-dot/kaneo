@@ -129,6 +129,8 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
     priority: taskTable.priority,
     startDate: taskTable.startDate,
     dueDate: taskTable.dueDate,
+    autoMigrateEnabled: taskTable.autoMigrateEnabled,
+    autoMigrateStatus: taskTable.autoMigrateStatus,
     position: taskTable.position,
     createdAt: taskTable.createdAt,
     userId: taskTable.userId,

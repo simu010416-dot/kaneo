@@ -8,6 +8,7 @@ import {
   taskTable,
 } from "../../database/schema";
 import { publishEvent } from "../../events";
+import { autoMigrateClearPatch } from "../auto-migrate-fields";
 import getNextTaskNumber from "./get-next-task-number";
 
 type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -131,6 +132,13 @@ async function moveTask({
     destinationStatus,
   );
 
+  const clearPatch = autoMigrateClearPatch({
+    previousStatus: existingTask.status,
+    nextStatus: resolvedColumn.slug,
+    nextStartDate: undefined,
+    previousStartDate: existingTask.startDate,
+  });
+
   const movedTask = await db.transaction(async (tx) => {
     const [nextTaskNumber, nextPosition] = await Promise.all([
       getNextTaskNumber(destinationProjectId, tx),
@@ -150,6 +158,7 @@ async function moveTask({
         columnId: resolvedColumn.id,
         number: nextTaskNumber + 1,
         position: nextPosition,
+        ...clearPatch,
       })
       .where(eq(taskTable.id, taskId))
       .returning();

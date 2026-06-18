@@ -9,6 +9,7 @@ import {
   workspaceUserTable,
 } from "../../database/schema";
 import { publishEvent } from "../../events";
+import { autoMigrateClearPatch } from "../auto-migrate-fields";
 import {
   assertValidPriority,
   assertValidTaskStatus,
@@ -38,6 +39,8 @@ async function bulkUpdateTasks({
     .select({
       id: taskTable.id,
       projectId: taskTable.projectId,
+      status: taskTable.status,
+      startDate: taskTable.startDate,
       workspaceId: projectTable.workspaceId,
     })
     .from(taskTable)
@@ -106,6 +109,25 @@ async function bulkUpdateTasks({
         const projectTaskIds = tasks
           .filter((t) => t.projectId === projectId)
           .map((t) => t.id);
+
+        const leavingPlanned = autoMigrateClearPatch({
+          previousStatus: "planned",
+          nextStatus: value,
+          nextStartDate: undefined,
+          previousStartDate: null,
+        });
+
+        if (leavingPlanned) {
+          await db
+            .update(taskTable)
+            .set(leavingPlanned)
+            .where(
+              and(
+                inArray(taskTable.id, projectTaskIds),
+                eq(taskTable.status, "planned"),
+              ),
+            );
+        }
 
         const result = await db
           .update(taskTable)
