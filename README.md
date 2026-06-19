@@ -103,6 +103,8 @@ volumes:
 
 Save this as `compose.yml`, create a `.env` file with `KANEO_CLIENT_URL=http://localhost:5173`, `POSTGRES_PASSWORD=<password>`, and `AUTH_SECRET=<output of openssl rand -hex 32>`, run `docker compose up -d`, and open [http://localhost:5173](http://localhost:5173).
 
+To deploy from **your own source** instead of the pre-built image, use `compose.build.yml` — see [deploy/docker-build.md](./deploy/docker-build.md).
+
 > **Important:** See our [full documentation](https://kaneo.app/docs/core) for detailed setup instructions, environment variable configuration, and troubleshooting guides.
 
 ### Development Setup
